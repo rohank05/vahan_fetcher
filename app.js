@@ -168,6 +168,39 @@ async function downloadExcel(page, destPath) {
     console.log(`     Saved: ${path.basename(destPath)}`);
 }
 
+// ─── PAGE RECOVERY ───────────────────────────────────────────────────────────
+// Called when the page navigates away mid-run (e.g. download timeout causes reload).
+// Reloads the page and restores all filter state so the retry can continue.
+async function recoverPage(page, state, rto) {
+    console.log('\n  [RECOVERY] Page lost — reloading and restoring state…');
+    await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: NAV_TIMEOUT_MS });
+    await page.waitForFunction(
+        () => window.PrimeFaces && Object.keys(PrimeFaces.widgets).length > 5,
+        { timeout: 30_000 }
+    );
+    await sleep(STEP_DELAY_MS);
+
+    await pfSelect(page, 'widget_yaxisVar', 'Maker');
+    await pfSelect(page, 'widget_xaxisVar', 'Month Wise');
+    await pfSelect(page, 'widget_selectedYearType', 'C');
+    await pfSelect(page, 'widget_selectedYear', '2026');
+
+    const newStateKey = await getStateWidgetKey(page);
+    await pfSelect(page, newStateKey, state.code);
+    await sleep(STEP_DELAY_MS);
+
+    await page.waitForFunction(() => {
+        const sel = document.getElementById('selectedRto_input');
+        return sel && sel.options.length > 1;
+    }, { timeout: 20_000 });
+
+    await pfSelect(page, 'widget_selectedRto', rto.value);
+    await clickMainRefresh(page);
+    await ensureSidebarOpen(page);
+    console.log('  [RECOVERY] Done ✓');
+    return newStateKey;
+}
+
 // ─── KEEP-ALIVE ───────────────────────────────────────────────────────────────
 let lastKeepAlive = Date.now();
 async function keepAliveIfNeeded(page) {
@@ -306,6 +339,14 @@ async function main() {
 
                 try {
                     await withRetry(async () => {
+                        // If page navigated away, reload and restore before retrying
+                        const pageGone = await page.evaluate(() =>
+                            !document.getElementById('filterLayout') || !window.PrimeFaces
+                        ).catch(() => true);
+                        if (pageGone) {
+                            stateWidgetKey = await recoverPage(page, state, rto);
+                        }
+
                         await selectOneVehicleClass(page, vc.idx);
                         await clickSidebarRefresh(page);
                         await sleep(STEP_DELAY_MS);
