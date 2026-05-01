@@ -30,7 +30,7 @@ async function withRetry(fn, label, maxRetries = MAX_RETRIES) {
             return await fn();
         } catch (err) {
             const msg = String(err.message || err);
-            const isServerErr = /50[023]|gateway|timeout|ECONNRESET|net::/i.test(msg);
+            const isServerErr = /50[023]|gateway|timeout|ECONNRESET|net::|server error/i.test(msg);
             console.warn(`  [RETRY ${attempt}/${maxRetries}] ${label}`);
             console.warn(`    Reason: ${msg.split('\n')[0]}`);
             if (attempt === maxRetries) throw err;
@@ -100,12 +100,15 @@ async function clickMainRefresh(page) {
 }
 
 // ─── CLICK SIDEBAR REFRESH ────────────────────────────────────────────────────
+// Find dynamically: any button inside #filterLayout whose onclick updates combTablePnl
 async function clickSidebarRefresh(page) {
     await page.evaluate(() => {
-        const header = document.querySelector('#filterLayout .ui-layout-unit-header-title');
-        if (!header) throw new Error('Sidebar header-title not found');
-        const btn = header.querySelector('button');
-        if (!btn) throw new Error('Sidebar refresh button not found in header');
+        const sidebar = document.getElementById('filterLayout');
+        if (!sidebar) throw new Error('filterLayout not found');
+        const btn = Array.from(sidebar.querySelectorAll('button')).find(b =>
+            (b.getAttribute('onclick') || '').includes('combTablePnl')
+        );
+        if (!btn) throw new Error('Sidebar refresh button not found');
         btn.click();
     });
     await waitForAjax(page);
@@ -307,9 +310,12 @@ async function main() {
                         await clickSidebarRefresh(page);
                         await sleep(STEP_DELAY_MS);
 
-                        const hasError = await page.evaluate(() =>
-                            /503|502|Service Unavailable|Internal Server Error/i.test(document.body.innerText)
-                        );
+                        // Check only the main table panel — dropdown options contain RTO codes like AP502/AP503
+                        // which would false-positive on document.body.innerText
+                        const hasError = await page.evaluate(() => {
+                            const panel = document.getElementById('combTablePnl') || document.body;
+                            return /Service Unavailable|Internal Server Error/i.test(panel.innerText);
+                        });
                         if (hasError) throw new Error('Server error after sidebar refresh');
 
                         const safeName = `${state.code}__${rto.value}__${String(vc.idx).padStart(2, '0')}__${vc.label}`;
@@ -331,8 +337,10 @@ async function main() {
 
                     }, `Export ${state.code}/${rto.value}/vc${vc.idx}:${vc.label}`);
                 } catch (err) {
-                    await db.logFetch(state.code, rto.value, vc.idx, 'error', err.message?.split('\n')[0]);
-                    throw err;
+                    const msg = err.message?.split('\n')[0];
+                    console.warn(`\n     [FAILED] ${state.code}/${rto.value}/vc${vc.idx} — ${msg}`);
+                    await db.logFetch(state.code, rto.value, vc.idx, 'error', msg);
+                    // skip this combo and continue — do NOT re-throw
                 }
             }
 
