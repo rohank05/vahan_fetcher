@@ -390,7 +390,7 @@ async function runWorker({ workerIndex, stateCodes }) {
                         });
                         if (hasError) throw new Error('Server error after sidebar refresh');
 
-                        const safeName = `${state.code}__${rto.value}__${String(vc.idx).padStart(2, '0')}__${vc.label}`;
+                        const safeName = `${state.code}__${rto.value}__${String(vc.idx).padStart(2, '0')}__${vc.alias || vc.label}`;
                         const destPath = path.join(DOWNLOAD_DIR, `${safeName}.xls`);
 
                         if (fs.existsSync(destPath)) {
@@ -406,7 +406,7 @@ async function runWorker({ workerIndex, stateCodes }) {
                         done.add(key);
                         await db.markCompleted(state.code, rto.value, vc.idx);
 
-                    }, `Export ${state.code}/${rto.value}/vc${vc.idx}:${vc.label}`);
+                    }, `Export ${state.code}/${rto.value}/vc${vc.idx}:${vc.alias || vc.label}`);
 
                 } catch (err) {
                     const msg = err.message?.split('\n')[0];

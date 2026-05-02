@@ -62,82 +62,82 @@ const STATES_SEED = [
 ];
 
 const VEHICLE_CLASSES_SEED = [
-    { idx: 0,  label: 'M-CYCLE_SCOOTER' },
-    { idx: 1,  label: 'M-CYCLE_SCOOTER-WITH_SIDE_CAR' },
-    { idx: 2,  label: 'MOPED' },
-    { idx: 3,  label: 'MOTORISED_CYCLE' },
-    { idx: 4,  label: 'ADAPTED_VEHICLE' },
-    { idx: 5,  label: 'THREE_WHEELER_PERSONAL' },
-    { idx: 6,  label: 'MOTOR_CAR' },
-    { idx: 7,  label: 'FORK_LIFT' },
-    { idx: 8,  label: 'VEHICLE_FITTED_WITH_RIG' },
-    { idx: 9,  label: 'VEHICLE_FITTED_WITH_GENERATOR' },
-    { idx: 10, label: 'VEHICLE_FITTED_WITH_COMPRESSOR' },
-    { idx: 11, label: 'CRANE_MOUNTED_VEHICLE' },
-    { idx: 12, label: 'AGRICULTURAL_TRACTOR' },
-    { idx: 13, label: 'POWER_TILLER' },
-    { idx: 14, label: 'PRIVATE_SERVICE_VEHICLE_INDIVIDUAL' },
-    { idx: 15, label: 'CAMPER_VAN_TRAILER_PRIVATE' },
-    { idx: 16, label: 'TOW_TRUCK' },
-    { idx: 17, label: 'BREAKDOWN_VAN' },
-    { idx: 18, label: 'RECOVERY_VEHICLE' },
-    { idx: 19, label: 'TOWER_WAGON' },
-    { idx: 20, label: 'TREE_TRIMMING_VEHICLE' },
-    { idx: 21, label: 'CONSTRUCTION_EQUIPMENT_VEHICLE' },
-    { idx: 22, label: 'OMNI_BUS_PRIVATE' },
-    { idx: 23, label: 'ROAD_ROLLER' },
-    { idx: 24, label: 'EXCAVATOR_NT' },
-    { idx: 25, label: 'BULLDOZER' },
-    { idx: 26, label: 'HARVESTER' },
-    { idx: 27, label: 'TRAILER_AGRICULTURAL' },
-    { idx: 28, label: 'EARTH_MOVING_EQUIPMENT' },
-    { idx: 29, label: 'TRAILER_PERSONAL_USE' },
-    { idx: 30, label: 'QUADRICYCLE_PRIVATE' },
-    { idx: 31, label: 'ARMOURED_SPECIALISED_VEHICLE' },
-    { idx: 32, label: 'MOTOR_CARAVAN' },
-    { idx: 33, label: 'MOTOR_CYCLE_SCOOTER_SIDECAR_T' },
-    { idx: 34, label: 'MOTOR_CYCLE_SCOOTER_WITH_TRAILER' },
-    { idx: 35, label: 'MOTOR_CYCLE_SCOOTER_USED_FOR_HIRE' },
-    { idx: 36, label: 'E-RICKSHAW_WITH_CART_G' },
-    { idx: 37, label: 'E-RICKSHAW_P' },
-    { idx: 38, label: 'LUXURY_CAB' },
-    { idx: 39, label: 'THREE_WHEELER_PASSENGER' },
-    { idx: 40, label: 'THREE_WHEELER_GOODS' },
-    { idx: 41, label: 'GOODS_CARRIER' },
-    { idx: 42, label: 'POWER_TILLER_COMMERCIAL' },
-    { idx: 43, label: 'TRACTOR_COMMERCIAL' },
-    { idx: 44, label: 'MOBILE_CLINIC' },
-    { idx: 45, label: 'X-RAY_VAN' },
-    { idx: 46, label: 'LIBRARY_VAN' },
-    { idx: 47, label: 'MOBILE_WORKSHOP' },
-    { idx: 48, label: 'MOBILE_CANTEEN' },
-    { idx: 49, label: 'PRIVATE_SERVICE_VEHICLE' },
-    { idx: 50, label: 'MAXI_CAB' },
-    { idx: 51, label: 'MOTOR_CAB' },
-    { idx: 52, label: 'PULLER_TRACTOR' },
-    { idx: 53, label: 'BUS' },
-    { idx: 54, label: 'SCHOOL_BUS' },
-    { idx: 55, label: 'EDUCATIONAL_INSTITUTION_BUS' },
-    { idx: 56, label: 'AMBULANCE' },
-    { idx: 57, label: 'ANIMAL_AMBULANCE' },
-    { idx: 58, label: 'CAMPER_VAN_TRAILER' },
-    { idx: 59, label: 'CASH_VAN' },
-    { idx: 60, label: 'FIRE_TENDERS' },
-    { idx: 61, label: 'SNORKED_LADDERS' },
-    { idx: 62, label: 'AUXILIARY_TRAILER' },
-    { idx: 63, label: 'FIRE_FIGHTING_VEHICLE' },
-    { idx: 64, label: 'ARTICULATED_VEHICLE' },
-    { idx: 65, label: 'HEARSES' },
-    { idx: 66, label: 'OMNI_BUS' },
-    { idx: 67, label: 'DUMPER' },
-    { idx: 68, label: 'EXCAVATOR_COMMERCIAL' },
-    { idx: 69, label: 'TRAILER_COMMERCIAL' },
-    { idx: 70, label: 'TRACTOR_TROLLEY_COMMERCIAL' },
-    { idx: 71, label: 'SEMI_TRAILER_COMMERCIAL' },
-    { idx: 72, label: 'CONSTRUCTION_EQUIPMENT_COMMERCIAL' },
-    { idx: 73, label: 'QUADRICYCLE_COMMERCIAL' },
-    { idx: 74, label: 'MODULAR_HYDRAULIC_TRAILER' },
-    { idx: 75, label: 'VINTAGE_MOTOR_VEHICLE' },
+    { idx: 0,  label: 'M-CYCLE/SCOOTER',                              alias: 'M-CYCLE_SCOOTER',                       websiteId: 1   },
+    { idx: 1,  label: 'M-CYCLE/SCOOTER-WITH SIDE CAR',                alias: 'M-CYCLE_SCOOTER-WITH_SIDE_CAR',         websiteId: 2   },
+    { idx: 2,  label: 'MOPED',                                         alias: 'MOPED',                                 websiteId: 3   },
+    { idx: 3,  label: 'MOTORISED CYCLE (CC > 25CC)',                   alias: 'MOTORISED_CYCLE',                       websiteId: 4   },
+    { idx: 4,  label: 'ADAPTED VEHICLE',                               alias: 'ADAPTED_VEHICLE',                       websiteId: 5   },
+    { idx: 5,  label: 'THREE WHEELER (PERSONAL)',                      alias: 'THREE_WHEELER_PERSONAL',                websiteId: 6   },
+    { idx: 6,  label: 'MOTOR CAR',                                     alias: 'MOTOR_CAR',                             websiteId: 7   },
+    { idx: 7,  label: 'FORK LIFT',                                     alias: 'FORK_LIFT',                             websiteId: 8   },
+    { idx: 8,  label: 'VEHICLE FITTED WITH RIG',                       alias: 'VEHICLE_FITTED_WITH_RIG',               websiteId: 9   },
+    { idx: 9,  label: 'VEHICLE FITTED WITH GENERATOR',                 alias: 'VEHICLE_FITTED_WITH_GENERATOR',         websiteId: 10  },
+    { idx: 10, label: 'VEHICLE FITTED WITH COMPRESSOR',                alias: 'VEHICLE_FITTED_WITH_COMPRESSOR',        websiteId: 11  },
+    { idx: 11, label: 'CRANE MOUNTED VEHICLE',                         alias: 'CRANE_MOUNTED_VEHICLE',                 websiteId: 12  },
+    { idx: 12, label: 'AGRICULTURAL TRACTOR',                          alias: 'AGRICULTURAL_TRACTOR',                  websiteId: 13  },
+    { idx: 13, label: 'POWER TILLER',                                  alias: 'POWER_TILLER',                          websiteId: 14  },
+    { idx: 14, label: 'PRIVATE SERVICE VEHICLE (INDIVIDUAL USE)',       alias: 'PRIVATE_SERVICE_VEHICLE_INDIVIDUAL',    websiteId: 15  },
+    { idx: 15, label: 'CAMPER VAN / TRAILER (PRIVATE USE)',            alias: 'CAMPER_VAN_TRAILER_PRIVATE',            websiteId: 16  },
+    { idx: 16, label: 'TOW TRUCK',                                     alias: 'TOW_TRUCK',                             websiteId: 17  },
+    { idx: 17, label: 'BREAKDOWN VAN',                                 alias: 'BREAKDOWN_VAN',                         websiteId: 18  },
+    { idx: 18, label: 'RECOVERY VEHICLE',                              alias: 'RECOVERY_VEHICLE',                      websiteId: 19  },
+    { idx: 19, label: 'TOWER WAGON',                                   alias: 'TOWER_WAGON',                           websiteId: 20  },
+    { idx: 20, label: 'TREE TRIMMING VEHICLE',                         alias: 'TREE_TRIMMING_VEHICLE',                 websiteId: 21  },
+    { idx: 21, label: 'CONSTRUCTION EQUIPMENT VEHICLE',                alias: 'CONSTRUCTION_EQUIPMENT_VEHICLE',        websiteId: 22  },
+    { idx: 22, label: 'OMNI BUS (PRIVATE USE)',                        alias: 'OMNI_BUS_PRIVATE',                      websiteId: 23  },
+    { idx: 23, label: 'ROAD ROLLER',                                   alias: 'ROAD_ROLLER',                           websiteId: 24  },
+    { idx: 24, label: 'EXCAVATOR (NT)',                                 alias: 'EXCAVATOR_NT',                          websiteId: 25  },
+    { idx: 25, label: 'BULLDOZER',                                     alias: 'BULLDOZER',                             websiteId: 26  },
+    { idx: 26, label: 'HARVESTER',                                     alias: 'HARVESTER',                             websiteId: 27  },
+    { idx: 27, label: 'TRAILER (AGRICULTURAL)',                        alias: 'TRAILER_AGRICULTURAL',                  websiteId: 28  },
+    { idx: 28, label: 'EARTH MOVING EQUIPMENT',                        alias: 'EARTH_MOVING_EQUIPMENT',                websiteId: 29  },
+    { idx: 29, label: 'TRAILER FOR PERSONAL USE',                      alias: 'TRAILER_PERSONAL_USE',                  websiteId: 30  },
+    { idx: 30, label: 'QUADRICYCLE (PRIVATE)',                         alias: 'QUADRICYCLE_PRIVATE',                   websiteId: 31  },
+    { idx: 31, label: 'ARMOURED/SPECIALISED VEHICLE',                  alias: 'ARMOURED_SPECIALISED_VEHICLE',          websiteId: 32  },
+    { idx: 32, label: 'MOTOR CARAVAN',                                 alias: 'MOTOR_CARAVAN',                         websiteId: 33  },
+    { idx: 33, label: 'MOTOR CYCLE/SCOOTER-SIDECAR(T)',                alias: 'MOTOR_CYCLE_SCOOTER_SIDECAR_T',         websiteId: 51  },
+    { idx: 34, label: 'MOTOR CYCLE/SCOOTER-WITH TRAILER',              alias: 'MOTOR_CYCLE_SCOOTER_WITH_TRAILER',      websiteId: 52  },
+    { idx: 35, label: 'MOTOR CYCLE/SCOOTER-USED FOR HIRE',             alias: 'MOTOR_CYCLE_SCOOTER_USED_FOR_HIRE',     websiteId: 53  },
+    { idx: 36, label: 'E-RICKSHAW WITH CART (G)',                      alias: 'E-RICKSHAW_WITH_CART_G',                websiteId: 54  },
+    { idx: 37, label: 'E-RICKSHAW(P)',                                  alias: 'E-RICKSHAW_P',                          websiteId: 55  },
+    { idx: 38, label: 'LUXURY CAB',                                    alias: 'LUXURY_CAB',                            websiteId: 56  },
+    { idx: 39, label: 'THREE WHEELER (PASSENGER)',                     alias: 'THREE_WHEELER_PASSENGER',               websiteId: 57  },
+    { idx: 40, label: 'THREE WHEELER (GOODS)',                         alias: 'THREE_WHEELER_GOODS',                   websiteId: 58  },
+    { idx: 41, label: 'GOODS CARRIER',                                 alias: 'GOODS_CARRIER',                         websiteId: 59  },
+    { idx: 42, label: 'POWER TILLER (COMMERCIAL)',                     alias: 'POWER_TILLER_COMMERCIAL',               websiteId: 62  },
+    { idx: 43, label: 'TRACTOR (COMMERCIAL)',                          alias: 'TRACTOR_COMMERCIAL',                    websiteId: 63  },
+    { idx: 44, label: 'MOBILE CLINIC',                                 alias: 'MOBILE_CLINIC',                         websiteId: 64  },
+    { idx: 45, label: 'X-RAY VAN',                                     alias: 'X-RAY_VAN',                             websiteId: 65  },
+    { idx: 46, label: 'LIBRARY VAN',                                   alias: 'LIBRARY_VAN',                           websiteId: 66  },
+    { idx: 47, label: 'MOBILE WORKSHOP',                               alias: 'MOBILE_WORKSHOP',                       websiteId: 67  },
+    { idx: 48, label: 'MOBILE CANTEEN',                                alias: 'MOBILE_CANTEEN',                        websiteId: 68  },
+    { idx: 49, label: 'PRIVATE SERVICE VEHICLE',                       alias: 'PRIVATE_SERVICE_VEHICLE',               websiteId: 69  },
+    { idx: 50, label: 'MAXI CAB',                                      alias: 'MAXI_CAB',                              websiteId: 70  },
+    { idx: 51, label: 'MOTOR CAB',                                     alias: 'MOTOR_CAB',                             websiteId: 71  },
+    { idx: 52, label: 'PULLER TRACTOR',                                alias: 'PULLER_TRACTOR',                        websiteId: 72  },
+    { idx: 53, label: 'BUS',                                           alias: 'BUS',                                   websiteId: 73  },
+    { idx: 54, label: 'SCHOOL BUS',                                    alias: 'SCHOOL_BUS',                            websiteId: 74  },
+    { idx: 55, label: 'EDUCATIONAL INSTITUTION BUS',                   alias: 'EDUCATIONAL_INSTITUTION_BUS',           websiteId: 75  },
+    { idx: 56, label: 'AMBULANCE',                                     alias: 'AMBULANCE',                             websiteId: 76  },
+    { idx: 57, label: 'ANIMAL AMBULANCE',                              alias: 'ANIMAL_AMBULANCE',                      websiteId: 77  },
+    { idx: 58, label: 'CAMPER VAN / TRAILER',                          alias: 'CAMPER_VAN_TRAILER',                    websiteId: 78  },
+    { idx: 59, label: 'CASH VAN',                                      alias: 'CASH_VAN',                              websiteId: 79  },
+    { idx: 60, label: 'FIRE TENDERS',                                  alias: 'FIRE_TENDERS',                          websiteId: 80  },
+    { idx: 61, label: 'SNORKED LADDERS',                               alias: 'SNORKED_LADDERS',                       websiteId: 81  },
+    { idx: 62, label: 'AUXILIARY TRAILER',                             alias: 'AUXILIARY_TRAILER',                     websiteId: 82  },
+    { idx: 63, label: 'FIRE FIGHTING VEHICLE',                         alias: 'FIRE_FIGHTING_VEHICLE',                 websiteId: 83  },
+    { idx: 64, label: 'ARTICULATED VEHICLE',                           alias: 'ARTICULATED_VEHICLE',                   websiteId: 84  },
+    { idx: 65, label: 'HEARSES',                                       alias: 'HEARSES',                               websiteId: 85  },
+    { idx: 66, label: 'OMNI BUS',                                      alias: 'OMNI_BUS',                              websiteId: 86  },
+    { idx: 67, label: 'DUMPER',                                        alias: 'DUMPER',                                websiteId: 87  },
+    { idx: 68, label: 'EXCAVATOR (COMMERCIAL)',                        alias: 'EXCAVATOR_COMMERCIAL',                  websiteId: 88  },
+    { idx: 69, label: 'TRAILER (COMMERCIAL)',                          alias: 'TRAILER_COMMERCIAL',                    websiteId: 89  },
+    { idx: 70, label: 'TRACTOR-TROLLEY (COMMERCIAL)',                  alias: 'TRACTOR_TROLLEY_COMMERCIAL',            websiteId: 90  },
+    { idx: 71, label: 'SEMI-TRAILER (COMMERCIAL)',                     alias: 'SEMI_TRAILER_COMMERCIAL',               websiteId: 91  },
+    { idx: 72, label: 'CONSTRUCTION EQUIPMENT VEHICLE (COMMERCIAL)',   alias: 'CONSTRUCTION_EQUIPMENT_COMMERCIAL',     websiteId: 92  },
+    { idx: 73, label: 'QUADRICYCLE (COMMERCIAL)',                      alias: 'QUADRICYCLE_COMMERCIAL',                websiteId: 93  },
+    { idx: 74, label: 'MODULAR HYDRAULIC TRAILER',                     alias: 'MODULAR_HYDRAULIC_TRAILER',             websiteId: 94  },
+    { idx: 75, label: 'VINTAGE MOTOR VEHICLE',                         alias: 'VINTAGE_MOTOR_VEHICLE',                 websiteId: 157 },
 ];
 
 // ─── SCHEMA ───────────────────────────────────────────────────────────────────
@@ -151,10 +151,14 @@ async function initDb() {
         );
 
         CREATE TABLE IF NOT EXISTS vehicle_classes (
-            id    SERIAL PRIMARY KEY,
-            idx   INTEGER UNIQUE NOT NULL,
-            label TEXT NOT NULL
+            id         SERIAL PRIMARY KEY,
+            idx        INTEGER UNIQUE NOT NULL,
+            label      TEXT NOT NULL,
+            alias      TEXT,
+            website_id INTEGER
         );
+        ALTER TABLE vehicle_classes ADD COLUMN IF NOT EXISTS alias      TEXT;
+        ALTER TABLE vehicle_classes ADD COLUMN IF NOT EXISTS website_id INTEGER;
 
         CREATE TABLE IF NOT EXISTS rtos (
             id        SERIAL PRIMARY KEY,
@@ -243,11 +247,20 @@ async function seedStates() {
 
 async function seedVehicleClasses() {
     const { rows } = await pool.query('SELECT COUNT(*) AS c FROM vehicle_classes');
-    if (parseInt(rows[0].c) > 0) return;
+    if (parseInt(rows[0].c) > 0) {
+        // Update alias/website_id on existing rows in case they were seeded before these columns existed
+        for (const vc of VEHICLE_CLASSES_SEED) {
+            await pool.query(
+                `UPDATE vehicle_classes SET alias = $1, website_id = $2 WHERE idx = $3 AND (alias IS NULL OR website_id IS NULL)`,
+                [vc.alias, vc.websiteId, vc.idx]
+            );
+        }
+        return;
+    }
     for (const vc of VEHICLE_CLASSES_SEED) {
         await pool.query(
-            'INSERT INTO vehicle_classes (idx, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [vc.idx, vc.label]
+            'INSERT INTO vehicle_classes (idx, label, alias, website_id) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+            [vc.idx, vc.label, vc.alias, vc.websiteId]
         );
     }
     console.log(`Seeded ${VEHICLE_CLASSES_SEED.length} vehicle classes.`);
@@ -262,7 +275,7 @@ async function loadStates() {
 }
 
 async function loadVehicleClasses() {
-    const { rows } = await pool.query('SELECT id, idx, label FROM vehicle_classes ORDER BY idx');
+    const { rows } = await pool.query('SELECT id, idx, label, alias, website_id FROM vehicle_classes ORDER BY idx');
     for (const r of rows) cache.vcByIdx.set(r.idx, r);
     return rows;
 }
