@@ -13,12 +13,13 @@ const db   = require('./db');
 const BASE_URL       = 'https://vahan.parivahan.gov.in/vahan4dashboard/vahan/view/reportview.xhtml';
 const BASE_DL_DIR    = path.resolve('./vahan_downloads');
 const WORKER_COUNT   = parseInt(process.env.WORKERS || '3');
+const FETCH_YEAR     = parseInt(process.env.YEAR || '2026');
 const KEEPALIVE_MS   = 3.5 * 60 * 1000;
 const RETRY_DELAY_MS = 20_000;
 const MAX_RETRIES    = 6;
 const AJAX_TIMEOUT_MS = 90_000;
 const NAV_TIMEOUT_MS  = 90_000;
-const STEP_DELAY_MS   = 2_000;
+const STEP_DELAY_MS   = 800;
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -91,8 +92,8 @@ function warn(...args) {
     }
 }
 
-function comboKey(stateCode, rtoCode, vcIdx) {
-    return `${stateCode}|${rtoCode}|${vcIdx}`;
+function comboKey(stateCode, rtoCode, vcIdx, year) {
+    return `${stateCode}|${rtoCode}|${vcIdx}|${year}`;
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -239,7 +240,7 @@ async function recoverPage(page, state, rto) {
     await pfSelect(page, 'widget_yaxisVar', 'Maker');
     await pfSelect(page, 'widget_xaxisVar', 'Month Wise');
     await pfSelect(page, 'widget_selectedYearType', 'C');
-    await pfSelect(page, 'widget_selectedYear', '2026');
+    await pfSelect(page, 'widget_selectedYear', String(FETCH_YEAR));
     const newStateKey = await getStateWidgetKey(page);
     await pfSelect(page, newStateKey, state.code);
     await sleep(STEP_DELAY_MS);
@@ -285,7 +286,6 @@ async function runWorker({ workerIndex, stateCodes }) {
 
     const browser = await chromium.launch({
         headless: true,
-        slowMo: 50,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         downloadsPath: DOWNLOAD_DIR,
     });
@@ -314,7 +314,7 @@ async function runWorker({ workerIndex, stateCodes }) {
         await pfSelect(page, 'widget_yaxisVar', 'Maker');
         await pfSelect(page, 'widget_xaxisVar', 'Month Wise');
         await pfSelect(page, 'widget_selectedYearType', 'C');
-        await pfSelect(page, 'widget_selectedYear', '2026');
+        await pfSelect(page, 'widget_selectedYear', String(FETCH_YEAR));
         log('Axis/year configured ✓');
     }, 'Axis/year setup');
 
@@ -368,7 +368,7 @@ async function runWorker({ workerIndex, stateCodes }) {
             await ensureSidebarOpen(page);
 
             for (const vc of VEHICLE_CLASSES) {
-                const key = comboKey(state.code, rto.value, vc.idx);
+                const key = comboKey(state.code, rto.value, vc.idx, FETCH_YEAR);
                 if (done.has(key)) { process.stdout.write('·'); continue; }
 
                 await keepAliveIfNeeded(page, lastKeepAlive);
@@ -382,7 +382,6 @@ async function runWorker({ workerIndex, stateCodes }) {
 
                         await selectOneVehicleClass(page, vc.idx);
                         await clickSidebarRefresh(page);
-                        await sleep(STEP_DELAY_MS);
 
                         const hasError = await page.evaluate(() => {
                             const panel = document.getElementById('combTablePnl') || document.body;
@@ -398,13 +397,12 @@ async function runWorker({ workerIndex, stateCodes }) {
                         } else {
                             await db.logFetch(state.code, rto.value, vc.idx, 'started', null);
                             await downloadExcel(page, destPath);
-                            await sleep(STEP_DELAY_MS);
                             const rows = await db.processXlsFile(destPath, `${safeName}.xls`);
                             await db.logFetch(state.code, rto.value, vc.idx, 'success', `${rows} rows`);
                         }
 
                         done.add(key);
-                        await db.markCompleted(state.code, rto.value, vc.idx);
+                        await db.markCompleted(state.code, rto.value, vc.idx, FETCH_YEAR);
 
                     }, `Export ${state.code}/${rto.value}/vc${vc.idx}:${vc.alias || vc.label}`);
 

@@ -202,8 +202,9 @@ async function initDb() {
             state_id         INTEGER NOT NULL REFERENCES states(id),
             rto_id           INTEGER NOT NULL REFERENCES rtos(id),
             vehicle_class_id INTEGER NOT NULL REFERENCES vehicle_classes(id),
+            year             INTEGER NOT NULL DEFAULT 2026,
             completed_at     TIMESTAMPTZ DEFAULT NOW(),
-            UNIQUE (state_id, rto_id, vehicle_class_id)
+            CONSTRAINT fetch_progress_unique UNIQUE (state_id, rto_id, vehicle_class_id, year)
         );
 
         CREATE TABLE IF NOT EXISTS fetch_logs (
@@ -225,6 +226,22 @@ async function initDb() {
             row_count    INTEGER NOT NULL DEFAULT 0,
             processed_at TIMESTAMPTZ DEFAULT NOW()
         );
+    `);
+
+    // Migrate fetch_progress: add year column if missing and replace unique constraint
+    await pool.query(`
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'fetch_progress' AND column_name = 'year'
+            ) THEN
+                ALTER TABLE fetch_progress ADD COLUMN year INTEGER NOT NULL DEFAULT 2026;
+                ALTER TABLE fetch_progress DROP CONSTRAINT IF EXISTS fetch_progress_state_id_rto_id_vehicle_class_id_key;
+                ALTER TABLE fetch_progress ADD CONSTRAINT fetch_progress_unique
+                    UNIQUE (state_id, rto_id, vehicle_class_id, year);
+            END IF;
+        END $$;
     `);
 
     await seedStates();
@@ -282,13 +299,13 @@ async function loadVehicleClasses() {
 
 async function loadCompleted() {
     const { rows } = await pool.query(`
-        SELECT s.code AS state_code, r.code AS rto_code, vc.idx AS vc_idx
+        SELECT s.code AS state_code, r.code AS rto_code, vc.idx AS vc_idx, fp.year
         FROM fetch_progress fp
-        JOIN states s         ON s.id  = fp.state_id
-        JOIN rtos r           ON r.id  = fp.rto_id
+        JOIN states s           ON s.id  = fp.state_id
+        JOIN rtos r             ON r.id  = fp.rto_id
         JOIN vehicle_classes vc ON vc.id = fp.vehicle_class_id
     `);
-    return new Set(rows.map(r => `${r.state_code}|${r.rto_code}|${r.vc_idx}`));
+    return new Set(rows.map(r => `${r.state_code}|${r.rto_code}|${r.vc_idx}|${r.year}`));
 }
 
 // ─── RTO HELPERS ─────────────────────────────────────────────────────────────
@@ -337,15 +354,15 @@ async function getOrCreateMaker(name) {
 
 // ─── FETCH PROGRESS ───────────────────────────────────────────────────────────
 
-async function markCompleted(stateCode, rtoCode, vcIdx) {
+async function markCompleted(stateCode, rtoCode, vcIdx, year) {
     const state = cache.stateByCode.get(stateCode);
     const vc    = cache.vcByIdx.get(vcIdx);
     const rtoId = await getRtoId(stateCode, rtoCode);
     if (!state || !vc || !rtoId) return;
     await pool.query(
-        `INSERT INTO fetch_progress (state_id, rto_id, vehicle_class_id)
-         VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-        [state.id, rtoId, vc.id]
+        `INSERT INTO fetch_progress (state_id, rto_id, vehicle_class_id, year)
+         VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+        [state.id, rtoId, vc.id, year]
     );
 }
 
