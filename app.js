@@ -101,7 +101,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function withRetry(fn, label, maxRetries = MAX_RETRIES) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            return await fn();
+            return await fn(attempt);
         } catch (err) {
             const msg = String(err.message || err);
             const isServerErr = /50[023]|gateway|timeout|ECONNRESET|net::|server error/i.test(msg);
@@ -374,11 +374,11 @@ async function runWorker({ workerIndex, stateCodes }) {
                 await keepAliveIfNeeded(page, lastKeepAlive);
 
                 try {
-                    await withRetry(async () => {
+                    await withRetry(async (attempt) => {
                         const pageGone = await page.evaluate(() =>
                             !document.getElementById('filterLayout') || !window.PrimeFaces
                         ).catch(() => true);
-                        if (pageGone) stateWidgetKey = await recoverPage(page, state, rto);
+                        if (pageGone || attempt >= 2) stateWidgetKey = await recoverPage(page, state, rto);
 
                         await selectOneVehicleClass(page, vc.idx);
                         await clickSidebarRefresh(page);
