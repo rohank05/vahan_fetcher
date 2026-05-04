@@ -11,7 +11,7 @@ const db   = require('./db');
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const BASE_URL       = 'https://vahan.parivahan.gov.in/vahan4dashboard/vahan/view/reportview.xhtml';
-const BASE_DL_DIR    = path.resolve('./vahan_downloads');
+const BASE_DL_DIR    = path.resolve(process.env.DL_DIR || './vahan_downloads');
 const WORKER_COUNT   = parseInt(process.env.WORKERS || '3');
 const FETCH_YEAR     = parseInt(process.env.YEAR || '2026');
 const KEEPALIVE_MS   = 3.5 * 60 * 1000;
@@ -389,15 +389,18 @@ async function runWorker({ workerIndex, stateCodes }) {
                         });
                         if (hasError) throw new Error('Server error after sidebar refresh');
 
-                        const safeName = `${state.code}__${rto.value}__${String(vc.idx).padStart(2, '0')}__${vc.alias || vc.label}`;
+                        const safeName = `${state.code}__${rto.value}__${String(vc.idx).padStart(2, '0')}__${vc.alias || vc.label}__${FETCH_YEAR}`;
                         const destPath = path.join(DOWNLOAD_DIR, `${safeName}.xls`);
 
+                        let rows;
                         if (fs.existsSync(destPath)) {
-                            await db.logFetch(state.code, rto.value, vc.idx, 'skipped', 'file exists');
+                            // leftover from a previous partial run — process it now
+                            rows = await db.processXlsFile(destPath, `${safeName}.xls`);
+                            await db.logFetch(state.code, rto.value, vc.idx, 'success', `${rows} rows (existing file)`);
                         } else {
                             await db.logFetch(state.code, rto.value, vc.idx, 'started', null);
                             await downloadExcel(page, destPath);
-                            const rows = await db.processXlsFile(destPath, `${safeName}.xls`);
+                            rows = await db.processXlsFile(destPath, `${safeName}.xls`);
                             await db.logFetch(state.code, rto.value, vc.idx, 'success', `${rows} rows`);
                         }
 

@@ -384,7 +384,7 @@ const MONTH_NAMES = {
     jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
 };
 
-// Filename format: STATE__RTO__IDX__LABEL.xls
+// Filename format: STATE__RTO__IDX__ALIAS__YEAR.xls  (YEAR optional for old files)
 function parseFilename(filename) {
     const base = path.basename(filename, '.xls');
     const parts = base.split('__');
@@ -502,6 +502,7 @@ async function closeDb() {
 }
 
 module.exports = {
+    pool,
     initDb,
     loadStates,
     loadVehicleClasses,
