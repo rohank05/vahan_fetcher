@@ -274,10 +274,11 @@ async function runWorker({ workerIndex, stateCodes }) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 
     await db.initDb();
-    const [allStates, VEHICLE_CLASSES, done] = await Promise.all([
+    const [allStates, VEHICLE_CLASSES, done, rtosByState] = await Promise.all([
         db.loadStates(),
         db.loadVehicleClasses(),
         db.loadCompleted(),
+        db.loadAllRtos(),
     ]);
 
     // Only process states assigned to this worker
@@ -325,8 +326,22 @@ async function runWorker({ workerIndex, stateCodes }) {
 
     const lastKeepAlive = { ts: Date.now() };
 
+    const allDoneForRto = (stateCode, rtoValue) =>
+        VEHICLE_CLASSES.every(vc => done.has(comboKey(stateCode, rtoValue, vc.idx, FETCH_YEAR)));
+
+    const allDoneForState = (stateCode) => {
+        const known = rtosByState.get(stateCode) || [];
+        return known.length > 0 && known.every(rto => allDoneForRto(stateCode, rto.value));
+    };
+
     // ── 3. Main loop ─────────────────────────────────────────────────────────
     for (const state of STATES) {
+        // Skip entire state if all known RTOs × VCs are already done
+        if (allDoneForState(state.code)) {
+            log(`\nSTATE: ${state.name} (${state.code}) — fully done ✓`);
+            continue;
+        }
+
         log(`\n${'═'.repeat(55)}`);
         log(`STATE: ${state.name} (${state.code})`);
         log('═'.repeat(55));
@@ -353,6 +368,12 @@ async function runWorker({ workerIndex, stateCodes }) {
         await db.saveRtos(state.code, rtos);
 
         for (const rto of rtos) {
+            // Skip RTO browser interactions if all VCs already done
+            if (allDoneForRto(state.code, rto.value)) {
+                process.stdout.write('·');
+                continue;
+            }
+
             log(`\n  ── RTO: ${rto.text} (${rto.value})`);
 
             await withRetry(async () => {

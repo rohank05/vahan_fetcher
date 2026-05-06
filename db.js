@@ -297,6 +297,20 @@ async function loadVehicleClasses() {
     return rows;
 }
 
+async function loadAllRtos() {
+    const { rows } = await pool.query(`
+        SELECT r.code AS value, r.name AS text, s.code AS state_code
+        FROM rtos r JOIN states s ON s.id = r.state_id
+        ORDER BY s.code, r.code
+    `);
+    const map = new Map();
+    for (const r of rows) {
+        if (!map.has(r.state_code)) map.set(r.state_code, []);
+        map.get(r.state_code).push({ value: r.value, text: r.text });
+    }
+    return map;
+}
+
 async function loadCompleted() {
     const { rows } = await pool.query(`
         SELECT s.code AS state_code, r.code AS rto_code, vc.idx AS vc_idx, fp.year
@@ -506,6 +520,7 @@ module.exports = {
     initDb,
     loadStates,
     loadVehicleClasses,
+    loadAllRtos,
     loadCompleted,
     saveRtos,
     markCompleted,
