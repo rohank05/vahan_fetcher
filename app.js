@@ -274,10 +274,13 @@ async function runWorker({ workerIndex, stateCodes }) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 
     await db.initDb();
+    const isCurrentYear = FETCH_YEAR === new Date().getFullYear();
+    if (isCurrentYear) log(`Current-year mode — all combos will be re-fetched and data updated`);
+
     const [allStates, VEHICLE_CLASSES, done, rtosByState] = await Promise.all([
         db.loadStates(),
         db.loadVehicleClasses(),
-        db.loadCompleted(),
+        db.loadCompleted(FETCH_YEAR),
         db.loadAllRtos(),
     ]);
 

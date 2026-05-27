@@ -311,7 +311,13 @@ async function loadAllRtos() {
     return map;
 }
 
-async function loadCompleted() {
+async function loadCompleted(fetchYear) {
+    const currentYear = new Date().getFullYear();
+
+    // Current year: return empty set so every combo is re-fetched and data stays up to date.
+    // Past years: skip anything already completed.
+    if (fetchYear === currentYear) return new Set();
+
     const { rows } = await pool.query(`
         SELECT s.code AS state_code, r.code AS rto_code, vc.idx AS vc_idx, fp.year
         FROM fetch_progress fp
@@ -375,7 +381,9 @@ async function markCompleted(stateCode, rtoCode, vcIdx, year) {
     if (!state || !vc || !rtoId) return;
     await pool.query(
         `INSERT INTO fetch_progress (state_id, rto_id, vehicle_class_id, year)
-         VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (state_id, rto_id, vehicle_class_id, year)
+         DO UPDATE SET completed_at = NOW()`,
         [state.id, rtoId, vc.id, year]
     );
 }
@@ -477,6 +485,17 @@ async function processXlsFile(filepath, filename) {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+
+        // For the current calendar year, wipe existing rows for this combo so that
+        // removed/corrected entries don't persist alongside fresh data.
+        if (year === new Date().getFullYear()) {
+            await client.query(
+                `DELETE FROM vehicle_registrations
+                 WHERE state_id = $1 AND rto_id = $2 AND vehicle_class_id = $3 AND year = $4`,
+                [state.id, rtoId, vc.id, year]
+            );
+        }
+
         for (const { maker, month, count } of records) {
             const makerId = await getOrCreateMaker(maker);
             await client.query(
