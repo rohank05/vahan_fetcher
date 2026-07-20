@@ -305,14 +305,22 @@ async function runWorker({ workerIndex, stateCodes }) {
 
     // ── 1. Load page ─────────────────────────────────────────────────────────
     await withRetry(async () => {
-        await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: NAV_TIMEOUT_MS });
-        await page.waitForSelector('#filterLayout-toggler', { state: 'attached', timeout: 30_000 });
+        const resp = await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: NAV_TIMEOUT_MS });
+        const status = resp ? resp.status() : 0;
+        try {
+            await page.waitForSelector('#filterLayout-toggler', { state: 'attached', timeout: 30_000 });
+        } catch (err) {
+            // Surface WHY the page is empty: the site blocks datacenter IPs / bad UA with a 403 "Access Forbidden" page.
+            const title = await page.title().catch(() => '?');
+            const body = await page.evaluate(() => document.body?.innerText?.slice(0, 200) || '').catch(() => '');
+            throw new Error(`Dashboard did not render (HTTP ${status}, title="${title}"). Body: ${body.replace(/\s+/g, ' ').trim()}`);
+        }
         await page.waitForFunction(
             () => window.PrimeFaces && Object.keys(PrimeFaces.widgets).length > 5,
             { timeout: 30_000 }
         );
         await sleep(STEP_DELAY_MS);
-        log('Page loaded ✓');
+        log(`Page loaded ✓ (HTTP ${status})`);
     }, 'Page load');
 
     // ── 2. One-time axis/year config ─────────────────────────────────────────
