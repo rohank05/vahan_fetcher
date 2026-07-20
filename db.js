@@ -447,7 +447,8 @@ function parseSheet(ws) {
         const maker = String(row[1] || '').trim();
         if (!maker || /^total$/i.test(maker)) continue;
         for (const { col, month } of monthCols) {
-            const count = parseInt(row[col]);
+            // values ≥1000 come as "1,343" — parseInt would stop at the comma
+            const count = parseInt(String(row[col] ?? '').replace(/,/g, ''));
             if (!isNaN(count) && count > 0) records.push({ maker, month, count });
         }
     }

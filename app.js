@@ -296,6 +296,8 @@ async function runWorker({ workerIndex, stateCodes }) {
     const context = await browser.newContext({
         acceptDownloads: true,
         viewport: { width: 1366, height: 768 },
+        // site 403s the default HeadlessChrome UA
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
     });
     const page = await context.newPage();
     page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
