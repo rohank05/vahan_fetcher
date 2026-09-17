@@ -1,6 +1,7 @@
 // api_fetcher.js — maker × month registrations from the analytics.parivahan.gov.in JSON API
 // node api_fetcher.js                     — YEAR env (default 2026), all states
 // STATES=DL,CH CONCURRENCY=5 node api_fetcher.js
+// YEAR=2024 REFETCH=1 node api_fetcher.js — refill a past year (upserts only, never deletes)
 // node api_fetcher.js --check             — offline self-check of the parsing logic
 //
 // The report API needs a session unlocked by a captcha (~15 min, not extended by use).
@@ -54,8 +55,10 @@ function toRecords(rows, year) {
     return records;
 }
 
-// "JANAKPURI - DL4" → "JANAKPURI"
-const rtoName = text => text.replace(/\s+-\s+[A-Z]{2}\d+$/, '').trim();
+// Site rtoCode for a DB rto code. The production DB stores it as-is ("4", as app.js wrote it);
+// an older local copy has "DL4" (Odisha "OD4"). Anything else, e.g. "AS28" filed under GJ, → null.
+const rtoNumber = (stateCode, code) =>
+    String(code).match(new RegExp(`^(?:${stateCode === 'OR' ? 'OD' : stateCode})?(\\d+)$`))?.[1] ?? null;
 
 // Site labels differ from DB labels in case/spacing/symbols: "Tractor-Trolley(Commercial)" vs "TRACTOR-TROLLEY (COMMERCIAL)"
 const classKey = label => label.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -94,6 +97,14 @@ async function unlockNewSession() {
     s.html = await page.text();
     s.csrf = s.html.match(/name="_csrf" value="([^"]+)"/)?.[1];
     if (!s.csrf) throw new Error(`No _csrf on page (HTTP ${page.status})`);
+
+    if (!ocr) {
+        ocr = await createWorker('eng', 1, { cachePath: __dirname });
+        await ocr.setParameters({
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+            tessedit_pageseg_mode: '7', // single line
+        });
+    }
 
     for (let attempt = 1; attempt <= 5; attempt++) {
         const img   = Buffer.from(await (await request(s, `${BASE}/captcha-gen?_ts=${Date.now()}&_seq=${attempt}`)).arrayBuffer());
@@ -176,19 +187,15 @@ async function runPool(items, size, fn) {
 
 async function main() {
     await db.initDb();
-    const [allStates, vehicleClasses, done] = await Promise.all([
+    const [allStates, vehicleClasses, done, dbRtos] = await Promise.all([
         db.loadStates(),
         db.loadVehicleClasses(),
-        db.loadCompleted(FETCH_YEAR),
+        // REFETCH=1: redo combos already marked done — past years are upsert-only, so this fills gaps without deleting rows
+        process.env.REFETCH ? new Set() : db.loadCompleted(FETCH_YEAR),
+        db.loadAllRtos(),
     ]);
     const states = STATES ? allStates.filter(s => STATES.includes(s.code)) : allStates;
     log(`Year ${FETCH_YEAR}, ${states.length} states, concurrency ${CONCURRENCY}, ${done.size} combos already done`);
-
-    ocr = await createWorker('eng', 1, { cachePath: __dirname });
-    await ocr.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
-        tessedit_pageseg_mode: '7', // single line
-    });
 
     // Site class values → DB vehicle_classes rows
     const vcByKey = new Map(vehicleClasses.map(vc => [classKey(vc.label), vc]));
@@ -202,14 +209,26 @@ async function main() {
 
     for (const state of states) {
         const t0 = Date.now();
-        // DB rto code = state + site rtoCode (DL + 4 = "DL4"), same as the old dashboard
-        const rtos = (await getJson(`${BASE}/json_rtos?stateCode=${state.code}`, `RTOs ${state.code}`))
-            .map(r => ({ value: `${state.code}${r.rtoCode}`, siteCode: r.rtoCode, text: rtoName(r.rtoName) }));
-        await db.saveRtos(state.code, rtos);
+        // Reuse the existing rtos row for each RTO number, whatever its code format; never rename it
+        const dbByNumber = new Map();
+        for (const r of dbRtos.get(state.code) || []) {
+            const n = rtoNumber(state.code, r.value);
+            if (n && !dbByNumber.has(n)) dbByNumber.set(n, r);
+        }
+        const siteRtos = (await getJson(`${BASE}/json_rtos?stateCode=${state.code}`, `RTOs ${state.code}`))
+            .map(r => ({ value: dbByNumber.get(String(r.rtoCode))?.value ?? String(r.rtoCode), siteCode: String(r.rtoCode), text: r.rtoName }));
+        await db.saveRtos(state.code, siteRtos.filter(r => !dbByNumber.has(r.siteCode))); // new RTOs only
+
+        // The site's RTO dropdown omits some RTOs the report API still has data for
+        // (AP837, AS36, MZ10/11: 2025 state totals only add up with them), so also fetch every RTO already in the DB
+        const extraRtos = [...dbByNumber]
+            .filter(([n]) => !siteRtos.some(s => s.siteCode === n))
+            .map(([n, r]) => ({ ...r, siteCode: n }));
+        const rtos = [...siteRtos, ...extraRtos];
 
         const combos = rtos.flatMap(rto => classes.map(c => ({ rto, c })))
             .filter(({ rto, c }) => !done.has(`${state.code}|${rto.value}|${c.vc.idx}|${FETCH_YEAR}`));
-        log(`STATE ${state.name} (${state.code}): ${rtos.length} RTOs, ${combos.length} combos to fetch`);
+        log(`STATE ${state.name} (${state.code}): ${siteRtos.length} site RTOs + ${extraRtos.length} DB-only, ${combos.length} combos to fetch`);
 
         let rowCount = 0, errors = 0;
         await runPool(combos, CONCURRENCY, async ({ rto, c }) => {
@@ -231,7 +250,7 @@ async function main() {
         log(`  ${state.code} done: ${rowCount} rows, ${errors} errors, ${((Date.now() - t0) / 1000).toFixed(0)}s`);
     }
 
-    await ocr.terminate();
+    await ocr?.terminate();
     await db.closeDb();
     log('All done ✓');
 }
@@ -240,16 +259,22 @@ function selfCheck() {
     assert.deepStrictEqual(
         toRecords({ ' HONDA ': { '2026-Jan': 5, '2026-Feb': 0, '2026-Mar': '1,343', '2025-Dec': 9, '2026-Foo': 3 } }, 2026),
         [{ maker: 'HONDA', month: 1, count: 5 }, { maker: 'HONDA', month: 3, count: 1343 }]);
-    assert.strictEqual(rtoName('JANAKPURI - DL4'), 'JANAKPURI');
-    assert.strictEqual(rtoName('M/S DAISY MOTORS PVT LTD(F.C) - HR261'), 'M/S DAISY MOTORS PVT LTD(F.C)');
     assert.strictEqual(classKey('Tractor-Trolley(Commercial)'), classKey('TRACTOR-TROLLEY (COMMERCIAL)'));
     assert.strictEqual(classKey('Motorised Cycle (CC  25cc)'), classKey('MOTORISED CYCLE (CC > 25CC)'));
+    assert.strictEqual(rtoNumber('DL', '4'), '4');
+    assert.strictEqual(rtoNumber('DL', 'DL4'), '4');
+    assert.strictEqual(rtoNumber('OR', 'OD2'), '2');
+    assert.strictEqual(rtoNumber('GJ', 'AS28'), null);
     console.log('self-check ok');
 }
 
-if (process.argv.includes('--check')) selfCheck();
-else main().catch(async err => {
-    console.error('Fatal:', err);
-    await db.closeDb().catch(() => {});
-    process.exit(1);
-});
+if (require.main === module) {
+    if (process.argv.includes('--check')) selfCheck();
+    else main().catch(async err => {
+        console.error('Fatal:', err);
+        await db.closeDb().catch(() => {});
+        process.exit(1);
+    });
+}
+
+module.exports = { BASE, getJson, fetchReport, toRecords, classKey, rtoNumber };
