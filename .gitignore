@@ -1,3 +1,5 @@
 .env
 vahan_downloads
 node_modules
+*.traineddata
+loadtest.log

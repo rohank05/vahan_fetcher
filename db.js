@@ -474,14 +474,27 @@ async function processXlsFile(filepath, filename) {
     }
 
     const { year, records } = parsed;
-    const state = cache.stateByCode.get(meta.stateCode);
-    const vc    = cache.vcByIdx.get(meta.vcIdx);
-    const rtoId = await getRtoId(meta.stateCode, meta.rtoCode);
-
-    if (!state || !vc || !rtoId) {
+    if (!await saveRecords(meta.stateCode, meta.rtoCode, meta.vcIdx, year, records)) {
         console.warn(`  [PROCESSOR] Cannot resolve IDs for ${filename} — skipping`);
         return 0;
     }
+    await pool.query(
+        `INSERT INTO processed_files (filename, row_count)
+         VALUES ($1, $2)
+         ON CONFLICT (filename) DO UPDATE SET row_count = $2, processed_at = NOW()`,
+        [filename, records.length]
+    );
+
+    fs.unlinkSync(filepath);
+    return records.length;
+}
+
+// Writes one combo's { maker, month, count } records. Returns false if IDs can't be resolved.
+async function saveRecords(stateCode, rtoCode, vcIdx, year, records) {
+    const state = cache.stateByCode.get(stateCode);
+    const vc    = cache.vcByIdx.get(vcIdx);
+    const rtoId = await getRtoId(stateCode, rtoCode);
+    if (!state || !vc || !rtoId) return false;
 
     const client = await pool.connect();
     try {
@@ -508,12 +521,6 @@ async function processXlsFile(filepath, filename) {
                 [state.id, rtoId, vc.id, makerId, year, month, count]
             );
         }
-        await client.query(
-            `INSERT INTO processed_files (filename, row_count)
-             VALUES ($1, $2)
-             ON CONFLICT (filename) DO UPDATE SET row_count = $2, processed_at = NOW()`,
-            [filename, records.length]
-        );
         await client.query('COMMIT');
     } catch (err) {
         await client.query('ROLLBACK');
@@ -521,9 +528,7 @@ async function processXlsFile(filepath, filename) {
     } finally {
         client.release();
     }
-
-    fs.unlinkSync(filepath);
-    return records.length;
+    return true;
 }
 
 async function loadProcessedFiles() {
@@ -546,6 +551,7 @@ module.exports = {
     markCompleted,
     logFetch,
     processXlsFile,
+    saveRecords,
     loadProcessedFiles,
     closeDb,
 };
