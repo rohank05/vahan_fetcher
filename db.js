@@ -1,8 +1,5 @@
 require('dotenv').config();
 const { Pool } = require('pg');
-const XLSX = require('xlsx');
-const fs = require('fs');
-const path = require('path');
 
 const pool = new Pool({
     host:     process.env.PG_HOST     || 'localhost',
@@ -219,13 +216,6 @@ async function initDb() {
 
         CREATE INDEX IF NOT EXISTS idx_fl_created ON fetch_logs(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_fl_status  ON fetch_logs(status);
-
-        CREATE TABLE IF NOT EXISTS processed_files (
-            id           SERIAL PRIMARY KEY,
-            filename     TEXT UNIQUE NOT NULL,
-            row_count    INTEGER NOT NULL DEFAULT 0,
-            processed_at TIMESTAMPTZ DEFAULT NOW()
-        );
     `);
 
     // Migrate fetch_progress: add year column if missing and replace unique constraint
@@ -399,96 +389,6 @@ async function logFetch(stateCode, rtoCode, vcIdx, status, message) {
     );
 }
 
-// ─── XLS PARSER ───────────────────────────────────────────────────────────────
-
-const MONTH_NAMES = {
-    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
-};
-
-// Filename format: STATE__RTO__IDX__ALIAS__YEAR.xls  (YEAR optional for old files)
-function parseFilename(filename) {
-    const base = path.basename(filename, '.xls');
-    const parts = base.split('__');
-    if (parts.length < 3) return null;
-    const vcIdx = parseInt(parts[2]);
-    if (isNaN(vcIdx)) return null;
-    return { stateCode: parts[0], rtoCode: parts[1], vcIdx };
-}
-
-// Sheet layout (confirmed from sample):
-//   Row 0: Title  "Maker Month Wise Data … (<Year>)"
-//   Row 1: S No | Maker | [Month Wise merged] | TOTAL
-//   Row 2: blank spacer
-//   Row 3: ""  | ""    | JAN | FEB | … | ""
-//   Row 4+: data rows
-function parseSheet(ws) {
-    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-    if (raw.length < 5) return null;
-
-    const title = String(raw[0]?.[0] || '');
-    const yearMatch = /\((\d{4})\)/.exec(title);
-    const year = yearMatch ? parseInt(yearMatch[1]) : null;
-    if (!year) return null;
-
-    const monthHeaderRow = raw[3] || [];
-    const monthCols = [];
-    for (let col = 2; col < monthHeaderRow.length; col++) {
-        const cell = String(monthHeaderRow[col] || '').trim().toLowerCase().slice(0, 3);
-        const month = MONTH_NAMES[cell];
-        if (month) monthCols.push({ col, month });
-    }
-    if (monthCols.length === 0) return null;
-
-    const records = [];
-    for (let i = 4; i < raw.length; i++) {
-        const row = raw[i];
-        if (!row) continue;
-        const maker = String(row[1] || '').trim();
-        if (!maker || /^total$/i.test(maker)) continue;
-        for (const { col, month } of monthCols) {
-            // values ≥1000 come as "1,343" — parseInt would stop at the comma
-            const count = parseInt(String(row[col] ?? '').replace(/,/g, ''));
-            if (!isNaN(count) && count > 0) records.push({ maker, month, count });
-        }
-    }
-    return { year, records };
-}
-
-// ─── FILE PROCESSOR ───────────────────────────────────────────────────────────
-
-async function processXlsFile(filepath, filename) {
-    const meta = parseFilename(filename);
-    if (!meta) return 0;
-
-    const wb = XLSX.readFile(filepath);
-    const parsed = parseSheet(wb.Sheets[wb.SheetNames[0]]);
-
-    if (!parsed || parsed.records.length === 0) {
-        await pool.query(
-            'INSERT INTO processed_files (filename, row_count) VALUES ($1, 0) ON CONFLICT DO NOTHING',
-            [filename]
-        );
-        fs.unlinkSync(filepath);
-        return 0;
-    }
-
-    const { year, records } = parsed;
-    if (!await saveRecords(meta.stateCode, meta.rtoCode, meta.vcIdx, year, records)) {
-        console.warn(`  [PROCESSOR] Cannot resolve IDs for ${filename} — skipping`);
-        return 0;
-    }
-    await pool.query(
-        `INSERT INTO processed_files (filename, row_count)
-         VALUES ($1, $2)
-         ON CONFLICT (filename) DO UPDATE SET row_count = $2, processed_at = NOW()`,
-        [filename, records.length]
-    );
-
-    fs.unlinkSync(filepath);
-    return records.length;
-}
-
 // Writes one combo's { maker, month, count } records. Returns false if IDs can't be resolved.
 async function saveRecords(stateCode, rtoCode, vcIdx, year, records) {
     const state = cache.stateByCode.get(stateCode);
@@ -531,11 +431,6 @@ async function saveRecords(stateCode, rtoCode, vcIdx, year, records) {
     return true;
 }
 
-async function loadProcessedFiles() {
-    const { rows } = await pool.query('SELECT filename FROM processed_files');
-    return new Set(rows.map(r => r.filename));
-}
-
 async function closeDb() {
     await pool.end();
 }
@@ -550,8 +445,6 @@ module.exports = {
     saveRtos,
     markCompleted,
     logFetch,
-    processXlsFile,
     saveRecords,
-    loadProcessedFiles,
     closeDb,
 };

@@ -18,7 +18,7 @@ const { parseSelects } = require('./fetch_dropdowns');
 const BASE        = 'https://analytics.parivahan.gov.in/analytics';
 const PAGE_URL    = `${BASE}/vahanpublicreport?lang=en`;
 const UA          = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
-const FETCH_YEAR  = parseInt(process.env.YEAR || '2026');
+const FETCH_YEAR  = parseInt(process.env.YEAR || new Date().getFullYear()); // daily run must follow the calendar
 const STATES      = process.env.STATES ? process.env.STATES.split(',') : null;
 // load test: 5 concurrent ≈ 34 req/s with flat latency; 10 only reached 42 req/s with latency climbing
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || '5');

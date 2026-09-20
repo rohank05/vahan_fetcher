@@ -2,9 +2,10 @@
   "name": "vahan_fetcher",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "api_fetcher.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node api_fetcher.js",
+    "test": "node api_fetcher.js --check"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +14,6 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "pg": "^8.20.0",
-    "playwright": "^1.59.1",
-    "tesseract.js": "^7.0.0",
-    "xlsx": "^0.18.5"
+    "tesseract.js": "^7.0.0"
   }
 }
